@@ -73,7 +73,7 @@ jobs:
           curl -L -o 9cd35c4.patch https://github.com/SukiSU-Ultra/SukiSU-Ultra/commit/9cd35c47dab24c25381a1ff8c4445f8daa02ddd5.patch
           cd ./KernelSU-Next/
           patch -p1 --fuzz=3 <  ../9cd35c4.patch
-          #sed -i '1i #pragma once' ./kernel/ksu.h
+          sed -i '1i #pragma once' ./kernel/ksu.h
           cd ..
           [ -d KernelSU-Next ] && mv -f KernelSU-Next Wild_KSU
           
