@@ -37,7 +37,7 @@ jobs:
           
       - name: Apply the KernelSU Next, SUSFS, manual hooks patch and Baseband Guard
         run: |
-          set -euxo pipefail
+          set -ex
           cd kernel
           # Determine the tag of the latest release of KernelSU Next
           echo "KSUNEXT_VERSION=$(curl -s "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/tags" \
