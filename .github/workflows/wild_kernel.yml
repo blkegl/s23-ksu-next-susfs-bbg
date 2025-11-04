@@ -4,7 +4,7 @@ on:
   #schedule:
     #- cron: '0 4 * * *'  # Runs every day at 04:00 UTC
   workflow_dispatch: # Allow manual trigger if needed
-  push:
+  #push:
     paths:
       - ".github/workflows/kernel-build.yml"
       - "rezoss_susfs1512.patch"
