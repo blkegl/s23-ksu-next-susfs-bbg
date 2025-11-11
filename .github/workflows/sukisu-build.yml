@@ -49,7 +49,7 @@ jobs:
 
           # Compute version code = commit count + 10200 (same scheme as KernelSU CI)
           COMMITS="$(git -C "./KernelSU" rev-list --count HEAD || echo 0)"
-          SUKISU_VER_CODE=$((10200 + COMMITS))
+          SUKISU_VER_CODE=$((40000 + COMMITS - 2815))
           echo "SUKISU_VER_CODE=$SUKISU_VER_CODE" >> "$GITHUB_ENV"              
           
           # Integrate latest SUSFS
@@ -64,20 +64,15 @@ jobs:
           cd ..
 
           # Begin susfs patching
-          [ -d KernelSU ] && mv -f KernelSU KernelSU-Next
-          #cp -rv ./susfs4ksu/kernel_patches/fs/* fs/
-          #cp -rv ./susfs4ksu/kernel_patches/include/linux/* include/linux/
-          #cp -rv ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-android13-5.15.patch ./
-          #patch -p1 --fuzz=3 < 50_add_susfs_in_gki-android13-5.15.patch
-          patch -p1 --fuzz=3 < "${GITHUB_WORKSPACE}/rezoss_susfs1512.patch"
-
-           # Cherry pick SUKISU commit 9cd35c4
-          #curl -L -o 9cd35c4.patch https://github.com/SukiSU-Ultra/SukiSU-Ultra/commit/9cd35c47dab24c25381a1ff8c4445f8daa02ddd5.patch
-          #cd ./KernelSU-Next/
-          #patch -p1 --fuzz=3 <  ../9cd35c4.patch
-          #sed -i '1i #pragma once' ./kernel/ksu.h
-          #cd ..
-          [ -d KernelSU-Next ] && mv -f KernelSU-Next KernelSU
+  
+          cp -rv ./susfs4ksu/kernel_patches/fs/* fs/
+          cp -rv ./susfs4ksu/kernel_patches/include/linux/* include/linux/
+          cp -rv ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-android13-5.15.patch ./
+          cp -rv ./susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./KernelSU/
+          patch -p1 --fuzz=3 < 50_add_susfs_in_gki-android13-5.15.patch
+          cd KernelSU
+          patch -p1 --fuzz=3 < 10_enable_susfs_for_ksu.patch
+          cd ..
           
           # Integrate scope-minimized manual KernelSU hooks via a patch
           curl -L -o manual-hook.patch https://github.com/WildKernels/kernel_patches/raw/f2227a36f02adf3776fc9d432734faf04787f3fa/next/scope_min_manual_hooks_v1.4.patch
