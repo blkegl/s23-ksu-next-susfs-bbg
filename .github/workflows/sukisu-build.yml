@@ -43,7 +43,7 @@ jobs:
           | jq -r '.[0].name' | sed 's/^v//' | tr -d '.')" >> $GITHUB_ENV
 
           # Integrate the susfs-main branch of SukiSU into the source
-          curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s main
+          curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s susfs-main
           
           
 
@@ -68,11 +68,11 @@ jobs:
           cp -rv ./susfs4ksu/kernel_patches/fs/* fs/
           cp -rv ./susfs4ksu/kernel_patches/include/linux/* include/linux/
           cp -rv ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-android13-5.15.patch ./
-          cp -rv ./susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./KernelSU/
+          #cp -rv ./susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./KernelSU/
           patch -p1 --fuzz=3 < 50_add_susfs_in_gki-android13-5.15.patch
-          cd KernelSU
-          patch -p1 --fuzz=3 < 10_enable_susfs_for_ksu.patch
-          cd ..
+          #cd KernelSU
+          #patch -p1 --fuzz=3 < 10_enable_susfs_for_ksu.patch
+          #cd ..
           
           # Integrate scope-minimized manual KernelSU hooks via a patch
           curl -L -o manual-hook.patch https://github.com/WildKernels/kernel_patches/raw/f2227a36f02adf3776fc9d432734faf04787f3fa/next/scope_min_manual_hooks_v1.4.patch
