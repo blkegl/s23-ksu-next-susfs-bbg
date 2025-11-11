@@ -34,7 +34,7 @@ jobs:
           # Determine the current kernel version
           echo "KERNEL_VERSION=$(grep -m1 '^SUBLEVEL =' ./kernel/Makefile | awk '{print $3}')" >> $GITHUB_ENV
           
-      - name: Apply the Wild_KSU Next, SUSFS, manual hooks patch and Baseband Guard
+      - name: Apply the SukiSU-Ultra, SUSFS, manual hooks patch and Baseband Guard
         run: |
           set -euxo pipefail
           cd kernel
@@ -48,7 +48,7 @@ jobs:
           
 
           # Compute version code = commit count + 10200 (same scheme as KernelSU CI)
-          COMMITS="$(git -C "./SukiSU-Ultra" rev-list --count HEAD || echo 0)"
+          COMMITS="$(git -C "./KernelSU" rev-list --count HEAD || echo 0)"
           SUKISU_VER_CODE=$((10200 + COMMITS))
           echo "SUKISU_VER_CODE=$SUKISU_VER_CODE" >> "$GITHUB_ENV"              
           
@@ -64,7 +64,7 @@ jobs:
           cd ..
 
           # Begin susfs patching
-          [ -d SukiSU-Ultra ] && mv -f SukiSU-Ultra KernelSU-Next
+          [ -d KernelSU ] && mv -f KernelSU KernelSU-Next
           #cp -rv ./susfs4ksu/kernel_patches/fs/* fs/
           #cp -rv ./susfs4ksu/kernel_patches/include/linux/* include/linux/
           #cp -rv ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-android13-5.15.patch ./
@@ -77,7 +77,7 @@ jobs:
           #patch -p1 --fuzz=3 <  ../9cd35c4.patch
           #sed -i '1i #pragma once' ./kernel/ksu.h
           #cd ..
-          [ -d KernelSU-Next ] && mv -f KernelSU-Next SukiSU-Ultra
+          [ -d KernelSU-Next ] && mv -f KernelSU-Next KernelSU
           
           # Integrate scope-minimized manual KernelSU hooks via a patch
           curl -L -o manual-hook.patch https://github.com/WildKernels/kernel_patches/raw/f2227a36f02adf3776fc9d432734faf04787f3fa/next/scope_min_manual_hooks_v1.4.patch
