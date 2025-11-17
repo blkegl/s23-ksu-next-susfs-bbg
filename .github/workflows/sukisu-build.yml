@@ -84,10 +84,10 @@ jobs:
           # Integrate scope-minimized manual KernelSU hooks via a patch
           #curl -L -o manual-hook.patch https://github.com/WildKernels/kernel_patches/raw/f2227a36f02adf3776fc9d432734faf04787f3fa/next/scope_min_manual_hooks_v1.4.patch
           #patch -p1 --fuzz=3 < manual-hook.patch
-          #echo "CONFIG_KSU_KPROBES_HOOK=n" >> ./arch/arm64/configs/gki_defconfig
-          #echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_KPROBES_HOOK=n" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./arch/arm64/configs/gki_defconfig
           # SukiSU KPM
-          #echo "CONFIG_KPM=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KPM=y" >> ./arch/arm64/configs/gki_defconfig
 
           
           # Adding BBG support
