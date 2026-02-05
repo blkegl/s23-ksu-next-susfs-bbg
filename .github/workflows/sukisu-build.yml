@@ -78,8 +78,8 @@ jobs:
           echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./arch/arm64/configs/gki_defconfig
           
           # SukiSU KPM
-          echo "CONFIG_KPM=y" >> ./arch/arm64/configs/gki_defconfig
-          sed -i '/config KPM/{:a; n; s/^\s*default n/default y/; ta;}' KernelSU/kernel/Kconfig
+          # echo "CONFIG_KPM=y" >> ./arch/arm64/configs/gki_defconfig
+          # sed -i '/config KPM/{:a; n; s/^\s*default n/default y/; ta;}' KernelSU/kernel/Kconfig
           
           # Adding BBG support
           #wget -O- https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh | bash
