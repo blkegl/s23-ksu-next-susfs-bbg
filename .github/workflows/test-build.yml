@@ -1,14 +1,17 @@
-name: Build kernel using KSU Next, susfs and scope-minimized manual hooks
-
+# Script github action kanged from Ivan @reddxae with little bit my modification and addition
+name: Build kernel KSU Next, susfs and scope-minimized manual hooks 1.6
 on:
-  workflow_dispatch:
-
+  #schedule:
+    #- cron: '0 4 * * *'  # Runs every day at 04:00 UTC
+  workflow_dispatch: # Allow manual trigger if needed
+  #push:
+    
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+      - name: Checkout the repository
+        uses: actions/checkout@v4 
 
       - name: Free disk space
         run: |
