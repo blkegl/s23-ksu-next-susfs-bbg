@@ -10,25 +10,14 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v4
 
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force
-          sudo docker builder prune -a
+      #- name: Free disk space
+        #run: |
+          #sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          #sudo docker image prune --all --force
+          #sudo docker builder prune -a
 
-      - name: Disk usage
-        run: df -h /
-
-      - name: Create 50GB swap (LTO)
-        run: |
-          sudo swapoff -a || true
-          sudo rm -f /swapfile
-          # Using dd is more reliable for swap files on some runners
-          sudo dd if=/dev/zero of=/swapfile bs=1M count=51200
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          free -h
+      #- name: Disk usage
+        #run: df -h /
 
       - name: Set up the toolchain
         run: |
@@ -81,12 +70,28 @@ jobs:
           cp -rv ./susfs4ksu/kernel_patches/fs/* ./fs/
           cp -rv ./susfs4ksu/kernel_patches/include/linux/* ./include/linux/
           cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-android13-5.15.patch ./
-          patch -p1 < ./50_add_susfs_in_gki-android13-5.15.patch
-          #patch -p1 --fuzz=3 < "${GITHUB_WORKSPACE}/rezoss_next3_susfs2.patch"
-
-          # Integrate manual hook 1.6
+          patch -p1 --fuzz=3 < ./50_add_susfs_in_gki-android13-5.15.patch
+                    
+          # Integrate Sukisu scope_min_manual_hooks_v1.6.patch
           curl -L -o manual-hook.patch https://github.com/SukiSU-Ultra/SukiSU_patch/raw/83aa64b7548890bb1f2eff6c990c03a1802df27b/hooks/scope_min_manual_hooks_v1.6.patch
           patch -p1 --fuzz=3 < manual-hook.patch
+          echo "CONFIG_KSU_KPROBES_HOOK=n" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./arch/arm64/configs/gki_defconfig 
+          echo "CONFIG_KSU_SUSFS=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_TRY_UMOUNT=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_ENABLE_LOG=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./arch/arm64/configs/gki_defconfig
 
       - name: Add Performance Tweaks
         run: |
@@ -160,7 +165,7 @@ jobs:
           add_config CONFIG_LZ4_COMPRESS=y
           add_config CONFIG_LZ4_DECOMPRESS=y
           add_config CONFIG_BOEFFLA_WL_BLOCKER=y
-          add_config 'CONFIG_BOEFFLA_WL_BLOCKER_DEFAULT="lps_wakelock,wlan_ctrl_wakelock"'
+          add_config CONFIG_BOEFFLA_WL_BLOCKER_DEFAULT="lps_wakelock,wlan_ctrl_wakelock"
           add_config CONFIG_RCU_LAZY=y
           add_config CONFIG_RCU_LAZY_DEFAULT_OFF=n
           add_config CONFIG_RCU_EXPERT=y
@@ -294,6 +299,17 @@ jobs:
 
           echo ">>> Optimized Injection Complete"
 
+
+      - name: Create 50GB swap (LTO)
+        run: |
+          sudo swapoff -a || true
+          sudo rm -f /swapfile
+          # Using dd is more reliable for swap files on some runners
+          sudo dd if=/dev/zero of=/swapfile bs=1M count=51200
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
 
       - name: Build the kernel
         run: |
