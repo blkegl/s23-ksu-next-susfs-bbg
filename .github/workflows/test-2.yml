@@ -90,8 +90,8 @@ jobs:
           echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> ./arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./arch/arm64/configs/gki_defconfig
-
-      - name: Apply S23 Performance Optimizations (Clean)
+          
+      - name: Apply S23 Performance Optimizations (Clean + Fixed Cluster Limiter)
         run: |
           cd kernel
           set -e
@@ -133,53 +133,62 @@ jobs:
           EOF
 
           ############################################################
-          # 2. S23 CPUFREQ CLUSTER LIMITER (Conflict-Free)
+          # 2. S23 CPUFREQ CLUSTER LIMITER (Fixed Version)
           ############################################################
-          sed -i '/static LIST_HEAD(cpufreq_policy_list);/a \
-          static unsigned int s23_min_limit[3] = {0, 0, 0};' \
-          drivers/cpufreq/cpufreq.c
-
           cat << 'EOF' >> drivers/cpufreq/cpufreq.c
 
           /* ===== S23 Cluster Limiter ===== */
+          static unsigned int s23_cluster_min[3] = {0, 0, 0};
+
           static int s23_cluster_index(unsigned int cpu)
           {
-              /* SM8550 topology */
-              if (cpu <= 2) return 0;
-              if (cpu <= 6) return 1;
+              if (cpu <= 2)
+                  return 0;
+              if (cpu <= 6)
+                  return 1;
               return 2;
           }
 
-          static ssize_t show_s23_min_limit(struct cpufreq_policy *policy, char *buf)
+          static ssize_t show_s23_cluster_min(struct cpufreq_policy *policy, char *buf)
           {
-              return sprintf(buf, "%u\n",
-                  s23_min_limit[s23_cluster_index(policy->cpu)]);
+              int idx = s23_cluster_index(policy->cpu);
+              return sprintf(buf, "%u\n", s23_cluster_min[idx]);
           }
 
-          static ssize_t store_s23_min_limit(struct cpufreq_policy *policy,
-                                             const char *buf, size_t count)
+          static ssize_t store_s23_cluster_min(struct cpufreq_policy *policy,
+                                               const char *buf, size_t count)
           {
               unsigned int val;
+              int idx = s23_cluster_index(policy->cpu);
+
               if (kstrtouint(buf, 10, &val))
                   return -EINVAL;
 
-              s23_min_limit[s23_cluster_index(policy->cpu)] = val;
+              s23_cluster_min[idx] = val;
+
+              if (policy) {
+                  policy->min = max(policy->min, val);
+                  cpufreq_update_policy(policy->cpu);
+              }
+
               return count;
           }
 
-          cpufreq_freq_attr_rw(s23_min_limit);
+          cpufreq_freq_attr_rw(s23_cluster_min);
           /* ================================ */
           EOF
 
+          # Add attribute to cpufreq attribute table
           sed -i '/&scaling_min_freq.attr,/a \
-              \t&s23_min_limit.attr,' \
-              drivers/cpufreq/cpufreq.c
+              \t&s23_cluster_min.attr,' drivers/cpufreq/cpufreq.c
 
+          # Enforce cluster min during policy update
           sed -i '/new_data.max = freq_qos_read_value/a \
-              \tif (s23_min_limit[s23_cluster_index(policy->cpu)])\
-              \t\tnew_data.min = max(new_data.min,\
-              \t\ts23_min_limit[s23_cluster_index(policy->cpu)]);' \
-              drivers/cpufreq/cpufreq.c
+              { \
+                  unsigned int idx = s23_cluster_index(policy->cpu); \
+                  if (s23_cluster_min[idx]) \
+                      new_data.min = max(new_data.min, s23_cluster_min[idx]); \
+              }' drivers/cpufreq/cpufreq.c
 
           ############################################################
           # 3. ARM64 PREFETCH OPTIMIZATION
@@ -242,7 +251,7 @@ jobs:
           echo "CONFIG_HZ_300=y" >> $DEFCONFIG
 
           echo ">>> Clean S23 Optimization Complete."
-          
+
       - name: Set up swap space
         uses: pierotofy/set-swap-space@master
         with:
