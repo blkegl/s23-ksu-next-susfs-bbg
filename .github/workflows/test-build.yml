@@ -1,5 +1,5 @@
-
 name: Build kernel using KSU Next, susfs and scope-minimized manual hooks
+
 on:
   workflow_dispatch:
 
@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-        
+
       - name: Free disk space
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
