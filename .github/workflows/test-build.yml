@@ -9,16 +9,7 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
-
-      #- name: Free disk space
-        #run: |
-          #sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          #sudo docker image prune --all --force
-          #sudo docker builder prune -a
-
-      #- name: Disk usage
-        #run: df -h /
-
+        
       - name: Set up the toolchain
         run: |
           sudo apt update
@@ -38,60 +29,6 @@ jobs:
 
           # Determine the current kernel version
           echo "KERNEL_VERSION=$(grep -m1 '^SUBLEVEL =' ./kernel/Makefile | awk '{print $3}')" >> $GITHUB_ENV
-
-      - name: Apply the KernelSU Next, SUSFS and manual hooks patch
-        run: |
-          set -euxo pipefail
-          cd kernel
-          # Determine the tag of the latest release of KernelSU Next
-          echo "KSUNEXT_VERSION=$(curl -s "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/tags" \
-          | jq -r '.[0].name' | sed 's/^v//' | tr -d '.')" >> $GITHUB_ENV
-
-          # Integrate the latest next-susfs version of KernelSU Next into the source
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s dev_susfs
-
-          # Compute version code = commit count + 10200 (same scheme as KernelSU CI)
-          COMMITS="$(git -C "./KernelSU-Next" rev-list --count HEAD || echo 0)"
-          NEXT_VER_CODE=$((30000 + COMMITS))
-          echo "NEXT_VER_CODE=$NEXT_VER_CODE" >> "$GITHUB_ENV"
-
-          # Integrate SUSFS
-          git clone -b gki-android13-5.15 https://gitlab.com/simonpunk/susfs4ksu.git
-
-          # Determine susfs version
-          cd susfs4ksu
-          SUSFS_COMMIT=$(git rev-parse --short HEAD)
-          SUSFS_VERSION=$(sed -n 's/.*#define[[:space:]]\+SUSFS_VERSION[[:space:]]\+"v\{0,1\}\([0-9.]\+\)".*/\1/p' kernel_patches/include/linux/susfs.h | tr -d '.')
-          echo "SUSFS_VERSION=$SUSFS_VERSION" >> "$GITHUB_ENV"
-          echo "SUSFS_COMMIT=$SUSFS_COMMIT" >> "$GITHUB_ENV"
-          cd ..
-
-          # Begin susfs patching
-          cp -rv ./susfs4ksu/kernel_patches/fs/* ./fs/
-          cp -rv ./susfs4ksu/kernel_patches/include/linux/* ./include/linux/
-          cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-android13-5.15.patch ./
-          patch -p1 --fuzz=3 < ./50_add_susfs_in_gki-android13-5.15.patch
-                    
-          # Integrate Sukisu scope_min_manual_hooks_v1.6.patch
-          curl -L -o manual-hook.patch "https://github.com/SukiSU-Ultra/SukiSU_patch/raw/main/hooks/scope_min_manual_hooks_v1.6.patch"
-          patch -p1 --fuzz=3 < manual-hook.patch
-          echo "CONFIG_KSU_KPROBES_HOOK=n" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./arch/arm64/configs/gki_defconfig 
-          echo "CONFIG_KSU_SUSFS=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_TRY_UMOUNT=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_ENABLE_LOG=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./arch/arm64/configs/gki_defconfig
      
       - name: Apply Optimized Performance & Feature Injection
         run: |
