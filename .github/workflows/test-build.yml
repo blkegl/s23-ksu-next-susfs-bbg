@@ -92,20 +92,13 @@ jobs:
           echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> ./arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./arch/arm64/configs/gki_defconfig
-
-      - name: Add Performance Tweaks
+     
+      - name: Apply Optimized Performance & Feature Injection
         run: |
           set -euxo pipefail
           cd kernel
 
-          echo ">>> Applying Optimized Performance & Feature Injection"
-
-          # ==========================================================
-          # PART A — BOEFFLA WAKELOCK BLOCKER (Robust + Idempotent)
-          # ==========================================================
-
-          echo "Injecting Boeffla Wakelock Blocker..."
-
+          echo ">>> Injecting Boeffla Wakelock Blocker..."
           BOEFFLA_RAW="https://raw.githubusercontent.com/qwerty12/SM-G9750_GrainGripper/master/drivers/base/power"
 
           if [ ! -f drivers/misc/boeffla_wl_blocker.c ]; then
@@ -140,7 +133,6 @@ jobs:
           # ==========================================================
           # PART B — CONFIG FRAGMENT (NO DUPLICATES)
           # ==========================================================
-
           DEFCONFIG="arch/arm64/configs/gki_defconfig"
 
           add_config() {
@@ -148,7 +140,6 @@ jobs:
           }
 
           echo ">>> Applying Config Tweaks"
-
           add_config CONFIG_WQ_POWER_EFFICIENT_DEFAULT=y
           add_config CONFIG_LRNG=y
           add_config CONFIG_TCP_CONG_ADVANCED=y
@@ -161,11 +152,8 @@ jobs:
           add_config CONFIG_LRU_GEN_STATS=y
           add_config CONFIG_ZRAM=m
           add_config CONFIG_ZSMALLOC=m
-          add_config CONFIG_ZRAM_DEF_COMP_LZ4=y
-          add_config CONFIG_LZ4_COMPRESS=y
-          add_config CONFIG_LZ4_DECOMPRESS=y
           add_config CONFIG_BOEFFLA_WL_BLOCKER=y
-          add_config CONFIG_BOEFFLA_WL_BLOCKER_DEFAULT="lps_wakelock,wlan_ctrl_wakelock"
+          add_config 'CONFIG_BOEFFLA_WL_BLOCKER_DEFAULT="lps_wakelock,wlan_ctrl_wakelock"'
           add_config CONFIG_RCU_LAZY=y
           add_config CONFIG_RCU_LAZY_DEFAULT_OFF=n
           add_config CONFIG_RCU_EXPERT=y
@@ -185,11 +173,9 @@ jobs:
           add_config CONFIG_HZ_300=y
 
           # ==========================================================
-          # PART C — INT_SQRT (Single Clean Overwrite)
+          # PART C — INT_SQRT
           # ==========================================================
-
-          echo "Overwriting int_sqrt.c (single source of truth)"
-
+          echo "Overwriting int_sqrt.c"
           cat > lib/math/int_sqrt.c <<'EOF'
           #include <linux/export.h>
           #include <linux/bitops.h>
@@ -222,11 +208,9 @@ jobs:
           EOF
 
           # ==========================================================
-          # PART D — CPUFREQ LIMITER (Single Implementation Only)
+          # PART D — CPUFREQ LIMITER
           # ==========================================================
-
-          echo "Injecting S23 CPUFreq Limiter (clean)"
-
+          echo "Injecting S23 CPUFreq Limiter"
           if ! grep -q S23_LIMITER drivers/cpufreq/cpufreq.c; then
             cat >> drivers/cpufreq/cpufreq.c <<'EOF'
 
@@ -260,11 +244,9 @@ jobs:
           # ==========================================================
           # PART E — SAFE ONE-LINER TWEAKS
           # ==========================================================
-
           echo "Applying One-liner Tweaks"
-
           grep -q pldl1strm arch/arm64/lib/copy_template.S || \
-            sed -i '/ldp1.*src, #16/a \ \tprfm    pldl1strm, [src, #(4*L1_CACHE_BYTES)]' arch/arm64/lib/copy_template.S
+            sed -i '/ldp1.*src, #16/a \ \tprfm\ \ pldl1strm, [src, #(4*L1_CACHE_BYTES)]' arch/arm64/lib/copy_template.S
 
           sed -i 's/__attribute__((aligned(4)));/__attribute__((aligned(8)));/' include/linux/fs.h
           sed -i 's/_SK_MEM_PACKETS\t\t256/_SK_MEM_PACKETS\t\t1024/' include/net/sock.h
@@ -288,7 +270,6 @@ jobs:
           # ==========================================================
           # PART F — RWONCE FIX
           # ==========================================================
-
           cat > arch/arm64/include/asm/rwonce.h <<'EOF'
           #ifndef __ASM_RWONCE_H
           #define __ASM_RWONCE_H
